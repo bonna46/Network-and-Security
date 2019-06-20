@@ -1,0 +1,153 @@
+#include<iostream>
+#include<sstream>
+#include<gmp.h>
+#include<stdlib.h>
+#include<stdio.h>
+#include<set>
+#include<cmath>
+#include<string>
+#include<unistd.h>
+#include<fcntl.h>
+using namespace std;
+void get_random_n_bits(mpz_t r, size_t bits)
+{
+    size_t size = (size_t) ceilf(bits/8);
+    char *buffer = (char*) malloc(sizeof(char)*size);
+    int prg = open("/dev/random", O_RDONLY);
+    read(prg, buffer, size);
+    close(prg);
+    mpz_import (r, size,1,sizeof(char), 0,0, buffer);
+    free(buffer);
+}
+
+mpz_t a,p,b,generator,r,output,t1,y2,one,msg,y3,pmin,temp1,temp2,temp3,zero;
+mpz_in()
+{
+    mpz_init(a);
+    mpz_init(b);
+    mpz_init(p);
+    mpz_init(generator);
+    mpz_init(r);
+    mpz_init(output);
+    mpz_init(t1);
+    mpz_init(y3);
+    mpz_init(y2);
+    mpz_init(one);
+    mpz_set_ui(one,1);
+    mpz_init(msg);
+    mpz_init(pmin);
+    mpz_init(temp1);
+    mpz_init(temp2);
+    mpz_init(temp3);
+    mpz_init(zero);
+}
+mpz_clr()
+{
+    mpz_clear(a);
+    mpz_clear(b);
+    mpz_clear(p);
+    mpz_clear(generator);
+    mpz_clear(r);
+    mpz_clear(output);
+    mpz_clear(t1);
+    mpz_clear(y3);
+    mpz_clear(y2);
+    mpz_clear(one);
+    mpz_clear(pmin);
+
+}
+int func()
+{
+    mpz_in();
+    int pris;
+    cout<<"Number of bits in P:";
+    cin>>pris;
+    char* str=new char[pris+1];
+    str[0]='1';
+    for(int i=1; i<pris; i++)
+        str[i]=char((rand()%2)+48);
+    str[pris]='\0';
+    mpz_set_str(p,str,2);
+    mpz_nextprime(p,p);
+    //mpz_sub(p,p,one); mpz_sub(p,p,one); mpz_sub(p,p,one); mpz_sub(p,p,one);
+    printf("Prime number: %s\n",mpz_get_str(NULL,10,p));
+    do
+    {
+        get_random_n_bits(generator,mpz_sizeinbase(p,2));
+        mpz_nextprime(generator,generator);
+    }
+    while(mpz_cmp(generator,p)>=0);
+
+    printf("Primitive element alpha: %s\n",mpz_get_str(NULL,10,generator));
+
+    do
+    {
+        char aa[1024];
+        cout<<"Private key:";
+        cin>>aa;
+        mpz_set_ui(a,0);
+        mpz_set_str(a,aa,10);
+    }
+    while(!mpz_cmp(a,p)<0);
+    printf("Private element a: %s\n",mpz_get_str(NULL,10,a));
+    do
+    {
+        char rr[1024];
+        cout<<"Random number:";
+        cin>>rr;
+        mpz_set_str(r,rr,10);
+    }
+    while(!mpz_cmp(r,p)<0);
+    printf("random element k : %s\n",mpz_get_str(NULL,10,r));
+
+    do
+    {
+        char m[1024];
+        cout<<"Message m :";
+        cin>>m;
+        mpz_set_str(msg,m,10);
+    }
+    while(!mpz_cmp(r,p)<0);
+    printf("Original Message: %s\n",mpz_get_str(NULL,10,msg));
+
+    mpz_powm(b,generator,a,p);
+    mpz_powm(y3,generator,r,p);
+    mpz_mul(t1,a,y3);
+    mpz_sub(t1,msg,t1);
+    mpz_sub(pmin,p,one);
+    mpz_invert(r,r,pmin);
+    while(mpz_cmp(zero,t1)>=0)
+    {
+        mpz_add(t1,t1,pmin);
+    }
+    mpz_mul(y2,t1,r);
+    mpz_mod(y2,y2,pmin);
+    //printf("y1 : %s\n",mpz_get_str(NULL,10,y3));
+
+    printf("y1 : %s\n",mpz_get_str(NULL,10,y3));
+    printf("y2 : %s\n",mpz_get_str(NULL,10,y2));
+    mpz_add(temp1,temp1,one);
+    mpz_add(temp2,temp2,one);
+    while(mpz_cmp(zero,y2)!=0)
+    {
+        mpz_mul(temp1,temp1,y3);
+        mpz_sub(y2,y2,one);
+    }
+
+    while(mpz_cmp(zero,y3)!=0)
+    {
+        mpz_mul(temp2,temp2,b);
+        mpz_sub(y3,y3,one);
+    }
+    mpz_mul(temp2,temp2,temp1);
+    mpz_mod(temp2,temp2,p);
+    printf("leftside: %s\n",mpz_get_str(NULL,10,temp2));
+    mpz_powm(temp3,generator,msg,p);
+    printf("right: %s\n",mpz_get_str(NULL,10,temp3));
+}
+
+
+int main()
+{
+    func();
+}
